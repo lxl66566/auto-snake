@@ -1,6 +1,6 @@
 <template>
   <div class="crossnote markdown-preview">
-    <h1 id="贪吃蛇可视化">贪吃蛇可视化 </h1>
+    <h1 id="贪吃蛇可视化">贪吃蛇可视化</h1>
     <p>类似贪吃蛇的游戏，但是有些修改。</p>
     <ol>
       <li>蛇出生点一定在边上</li>
@@ -11,9 +11,14 @@
   <div class="game-container">
     <div class="grid" :style="gridStyle()">
       <div v-for="(row, rowIndex) in grid" :key="rowIndex" class="row">
-        <div v-for="(cell, colIndex) in row" :key="colIndex" :class="getCellClass(cell)" class="cell"
-          @click="handleClickEvent(rowIndex, colIndex)" @contextmenu.prevent="handleContextEvent(rowIndex, colIndex)">
-        </div>
+        <div
+          v-for="(cell, colIndex) in row"
+          :key="colIndex"
+          :class="getCellClass(cell)"
+          class="cell"
+          @click="handleClickEvent(rowIndex, colIndex)"
+          @contextmenu.prevent="handleContextEvent(rowIndex, colIndex)"
+        ></div>
       </div>
     </div>
     <div class="buttons">
@@ -48,25 +53,35 @@ const mapSize = 20; // 地图大小
 const new_2d_arr = (x) =>
   Array(mapSize)
     .fill()
-    .map(() => Array(mapSize).fill(x));
+    .map(() => Array(mapSize).fill(x)); // 生成二维数组
 let grid = reactive(new_2d_arr(THING.Empty));
 let snake = []; // 贪吃蛇的身体坐标
 const walls = []; // 墙壁位置
 const maxFood = 10; // 最大食物数量
-let numFood = 0;
+let numFood = 0; // 记录当前场上的食物数量
 const numWalls = Math.floor((mapSize * mapSize) / 10); // 生成的墙壁数量
 const directions = [
   [0, -1],
   [-1, 0],
   [0, 1],
   [1, 0],
-];
-let current_route = null;
+]; // 四个移动方向
+let current_route = null; // 记录当前寻路结果的最短路径（缓存）
 
+/**
+ * @description: 计算两个坐标之间的曼哈顿距离
+ * @param {number[]} pos1 第一个坐标
+ * @param {number[]} pos2 第二个坐标
+ * @return {number} 两个坐标之间的曼哈顿距离
+ */
 function distant([x1, y1], [x2, y2]) {
   return Math.abs(x1 - x2) + Math.abs(y1 - y2);
 }
 
+/**
+ * @description: 生成 css grid 布局的 style 对象（mapSize x mapSize）
+ * @return {Object} css style对象
+ */
 function gridStyle() {
   return {
     display: "grid",
@@ -80,6 +95,9 @@ onMounted(() => {
   initGame();
 });
 
+/**
+ * @description: Reset the grid by setting all cells to empty
+ */
 const resetGrid = () => {
   for (let i = 0; i < mapSize; i++) {
     for (let j = 0; j < mapSize; j++) {
@@ -93,10 +111,12 @@ const initGame = () => {
   generateSnake();
   generateFood(maxFood);
   generateWalls();
-
   console.log("Game initialized.");
 };
 
+/**
+ * @description: 在地图的四条边上随机生成一个点的蛇
+ */
 function generateSnake() {
   // 随机生成蛇的初始位置，必定在边上
   const startEdge = Math.floor(Math.random() * 4);
@@ -121,10 +141,6 @@ function generateSnake() {
   grid[startX][startY] = THING.Snake;
 }
 
-function setThing(x, y, thingType) {
-  grid[x][y] = thingType;
-}
-
 /**
  * @description: 左键点击事件，用于生成/销毁食物
  * @param {number} x x坐标
@@ -146,17 +162,31 @@ function handleContextEvent(x, y) {
   handleEventInner(x, y, THING.Wall);
 }
 
+/**
+ * @description: 内部事件处理函数，根据传入的 x, y, thingType
+ * 1. 如果当前位置是蛇身并且与 thingType 不同，什么都不做
+ * 2. 如果当前位置是 thingType，清除该位置
+ * 3. 如果当前位置是 Empty，生成 thingType
+ * @param {number} x x坐标
+ * @param {number} y y坐标
+ * @param {THING} thingType 生成食物或墙壁类型
+ * @return {void}
+ */
 function handleEventInner(x, y, thingType) {
   if (grid[x][y] === THING.Snake && grid[x][y] !== thingType) {
     return;
   } else if (grid[x][y] === thingType) {
-    setThing(x, y, THING.Empty);
+    grid[x][y] = THING.Empty;
   } else if (grid[x][y] === THING.Empty) {
-    setThing(x, y, thingType);
+    grid[x][y] = thingType;
   }
 }
 
-// 生成食物
+/**
+ * @description: 生成 x 个食物，通过递归保证不重复
+ * @param {number} x 生成的食物数量
+ * @return {void}
+ */
 function generateFood(x) {
   if (x === 0) {
     return;
@@ -172,7 +202,9 @@ function generateFood(x) {
   }
 }
 
-// 生成墙壁
+/**
+ * @description: 随机生成墙壁（数量不一定为 numWalls）
+ */
 function generateWalls() {
   for (let i = 0; i < numWalls; i++) {
     const wallX = Math.floor(Math.random() * mapSize);
@@ -185,7 +217,11 @@ function generateWalls() {
   }
 }
 
-// 移动蛇
+/**
+ * @description: Move the snake by given direction
+ * @param {string} direction move direction, must be one of "up", "down", "left", "right"
+ * @return {void}
+ */
 function moveSnake(direction) {
   const head = snake[0];
   let newHead = [...head];
@@ -207,6 +243,11 @@ function moveSnake(direction) {
   moveToNewHead(newHead);
 }
 
+/**
+ * @description: 将蛇移动到指定位置
+ * @param {number[2]} newHead 新位置，可以是蛇头的四连接或蛇尾的四连接位置。会自动判断需要移动蛇头还是蛇尾
+ * @return {void}
+ */
 function moveToNewHead(newHead) {
   if (!newHead) {
     alert("无效的移动");
@@ -237,7 +278,11 @@ function moveToNewHead(newHead) {
   }
 }
 
-// 检查移动是否合法
+/**
+ * @description: Check if a given position is valid to move to
+ * @param {number[2]} pos 2D coordinates of the position to check
+ * @return {boolean} whether the position is valid or not
+ */
 function isValidMove([x, y]) {
   if (x < 0 || x >= mapSize || y < 0 || y >= mapSize || grid[x][y] === THING.Wall || grid[x][y] === THING.Snake) {
     return false;
@@ -286,6 +331,12 @@ function bfs(grid, start) {
   return null; // 如果没有找到目标
 }
 
+/**
+ * @description: 通过 bfs 自动寻找蛇到食物的最短路径，并移动一步。
+ *               如果蛇头和蛇尾都可以到达食物，那么
+ *               选择路径最短的那个移动
+ * @return {void}
+ */
 function autoMove() {
   if (numFood === 0) {
     alert("没有食物了");
@@ -313,7 +364,11 @@ function autoMove() {
   autoMove();
 }
 
-// 返回格子对应的 CSS 类
+/**
+ * @description: 通过 cell 的值返回对应的 class
+ * @param {THING} cell 一个格子的值
+ * @return {string} class name
+ */
 function getCellClass(cell) {
   switch (cell) {
     case THING.Empty:
