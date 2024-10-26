@@ -38,25 +38,24 @@
   </div>
 </template>
 
-<script setup>
-import { ref, reactive, onMounted } from "vue";
+<script lang="ts" setup>
+import { reactive, onMounted, type StyleValue } from "vue";
 
 // 定义常量（枚举）
-const THING = {
-  Empty: 0,
-  Snake: 1,
-  Food: 2,
-  Wall: 3,
-};
+enum THING {
+  Empty = 0,
+  Snake = 1,
+  Food = 2,
+  Wall = 3,
+}
+
+type Point = [number, number];
 
 const mapSize = 20; // 地图大小
-const new_2d_arr = (x) =>
-  Array(mapSize)
-    .fill()
-    .map(() => Array(mapSize).fill(x)); // 生成二维数组
-let grid = reactive(new_2d_arr(THING.Empty));
-let snake = []; // 贪吃蛇的身体坐标
-const walls = []; // 墙壁位置
+const new_2d_arr = <T>(x: T) => Array.from({ length: mapSize }).map(() => Array(mapSize).fill(x)); // 生成二维数组
+const grid = reactive<THING[][]>(new_2d_arr(THING.Empty));
+let snake: Point[] = []; // 贪吃蛇的身体坐标
+const walls: Point[] = []; // 墙壁位置
 const maxFood = 10; // 最大食物数量
 let numFood = 0; // 记录当前场上的食物数量
 const numWalls = Math.floor((mapSize * mapSize) / 10); // 生成的墙壁数量
@@ -66,7 +65,7 @@ const directions = [
   [0, 1],
   [1, 0],
 ]; // 四个移动方向
-let current_route = null; // 记录当前寻路结果的最短路径（缓存）
+let current_route: Point[] | null = null; // 记录当前寻路结果的最短路径（缓存）
 
 /**
  * @description: 计算两个坐标之间的曼哈顿距离
@@ -74,7 +73,7 @@ let current_route = null; // 记录当前寻路结果的最短路径（缓存）
  * @param {number[]} pos2 第二个坐标
  * @return {number} 两个坐标之间的曼哈顿距离
  */
-function distant([x1, y1], [x2, y2]) {
+function distant([x1, y1]: number[], [x2, y2]: number[]): number {
   return Math.abs(x1 - x2) + Math.abs(y1 - y2);
 }
 
@@ -82,7 +81,7 @@ function distant([x1, y1], [x2, y2]) {
  * @description: 生成 css grid 布局的 style 对象（mapSize x mapSize）
  * @return {Object} css style对象
  */
-function gridStyle() {
+function gridStyle(): StyleValue {
   return {
     display: "grid",
     gridTemplateColumns: `repeat(${mapSize}, 20px)`,
@@ -120,8 +119,8 @@ const initGame = () => {
 function generateSnake() {
   // 随机生成蛇的初始位置，必定在边上
   const startEdge = Math.floor(Math.random() * 4);
-  let startX = 0,
-    startY = 0;
+  let startX = 0;
+  let startY = 0;
 
   if (startEdge === 0) {
     startX = Math.floor(Math.random() * mapSize);
@@ -147,7 +146,7 @@ function generateSnake() {
  * @param {number} y y坐标
  * @return {void}
  */
-function handleClickEvent(x, y) {
+function handleClickEvent(x: number, y: number): void {
   handleEventInner(x, y, THING.Food);
   numFood++;
 }
@@ -158,7 +157,7 @@ function handleClickEvent(x, y) {
  * @param {number} y y坐标
  * @return {void}
  */
-function handleContextEvent(x, y) {
+function handleContextEvent(x: number, y: number): void {
   handleEventInner(x, y, THING.Wall);
 }
 
@@ -172,10 +171,11 @@ function handleContextEvent(x, y) {
  * @param {THING} thingType 生成食物或墙壁类型
  * @return {void}
  */
-function handleEventInner(x, y, thingType) {
+function handleEventInner(x: number, y: number, thingType: THING): void {
   if (grid[x][y] === THING.Snake && grid[x][y] !== thingType) {
     return;
-  } else if (grid[x][y] === thingType) {
+  }
+  if (grid[x][y] === thingType) {
     grid[x][y] = THING.Empty;
   } else if (grid[x][y] === THING.Empty) {
     grid[x][y] = thingType;
@@ -187,7 +187,7 @@ function handleEventInner(x, y, thingType) {
  * @param {number} x 生成的食物数量
  * @return {void}
  */
-function generateFood(x) {
+function generateFood(x: number): void {
   if (x === 0) {
     return;
   }
@@ -196,10 +196,10 @@ function generateFood(x) {
   if (grid[foodX][foodY] === 0) {
     grid[foodX][foodY] = THING.Food;
     numFood++;
-    return generateFood(x - 1);
-  } else {
-    return generateFood(x);
+    generateFood(x - 1);
+    return;
   }
+  generateFood(x);
 }
 
 /**
@@ -222,9 +222,9 @@ function generateWalls() {
  * @param {string} direction move direction, must be one of "up", "down", "left", "right"
  * @return {void}
  */
-function moveSnake(direction) {
-  const head = snake[0];
-  let newHead = [...head];
+function moveSnake(direction: string): void {
+  const head: Point = snake[0];
+  const newHead = [...head] as Point;
 
   switch (direction) {
     case "up":
@@ -245,10 +245,10 @@ function moveSnake(direction) {
 
 /**
  * @description: 将蛇移动到指定位置
- * @param {number[2]} newHead 新位置，可以是蛇头的四连接或蛇尾的四连接位置。会自动判断需要移动蛇头还是蛇尾
+ * @param {Point} newHead 新位置，可以是蛇头的四连接或蛇尾的四连接位置。会自动判断需要移动蛇头还是蛇尾
  * @return {void}
  */
-function moveToNewHead(newHead) {
+function moveToNewHead(newHead: Point): void {
   if (!newHead) {
     alert("无效的移动");
     return;
@@ -261,7 +261,9 @@ function moveToNewHead(newHead) {
     snake.unshift(newHead); // 移动蛇
     if (grid[newHead[0]][newHead[1]] !== THING.Food) {
       const tail = snake.pop(); // 蛇未吃到食物，尾部减掉
-      grid[tail[0]][tail[1]] = THING.Empty;
+      if (tail) {
+        grid[tail[0]][tail[1]] = THING.Empty;
+      }
     } else {
       numFood--;
     }
@@ -270,7 +272,9 @@ function moveToNewHead(newHead) {
     snake.push(newHead); // 移动蛇
     if (grid[newHead[0]][newHead[1]] !== THING.Food) {
       const tail = snake.shift(); // 蛇未吃到食物，尾部减掉
-      grid[tail[0]][tail[1]] = THING.Empty;
+      if (tail) {
+        grid[tail[0]][tail[1]] = THING.Empty;
+      }
     } else {
       numFood--;
     }
@@ -283,7 +287,7 @@ function moveToNewHead(newHead) {
  * @param {number[2]} pos 2D coordinates of the position to check
  * @return {boolean} whether the position is valid or not
  */
-function isValidMove([x, y]) {
+function isValidMove([x, y]: Point): boolean {
   if (x < 0 || x >= mapSize || y < 0 || y >= mapSize || grid[x][y] === THING.Wall || grid[x][y] === THING.Snake) {
     return false;
   }
@@ -292,16 +296,17 @@ function isValidMove([x, y]) {
 
 /**
  * @description: 广度优先搜索，用于找到蛇到食物的最短路径
- * @param {number[][]} grid 2D数组，表示游戏地图
+ * @param {THING[][]} grid 2D数组，表示游戏地图
  * @param {number[]} start 蛇的起点
- * @return {number[][]} 路径，null if no path is found
+ * @return {Point} 路径，null if no path is found
  */
-function bfs(grid, start) {
+function bfs(grid: THING[][], start: number[]): Point[] | null {
   const queue = [[start, [1, 1]]];
   const visited = new_2d_arr(null); // 假设 new_2d_arr 是初始化二维数组的方法
 
   while (queue.length > 0) {
-    let [[x, y], last] = queue.shift();
+    // biome-ignore lint/style/noNonNullAssertion: <explanation>
+    let [[x, y], last] = queue.shift()!;
 
     // 标记当前节点的上一个位置
     visited[x][y] = last;
@@ -309,7 +314,7 @@ function bfs(grid, start) {
 
     // 检查是否找到目标
     if (grid[x][y] === THING.Food) {
-      const ans = [];
+      const ans: Point[] = [];
       do {
         ans.push([x, y]);
         [x, y] = visited[x][y]; // 回溯路径
@@ -337,19 +342,20 @@ function bfs(grid, start) {
  *               选择路径最短的那个移动
  * @return {void}
  */
-function autoMove() {
+function autoMove(): void {
   if (numFood === 0) {
     alert("没有食物了");
     return;
   }
-  if (current_route?.length) {
-    moveToNewHead(current_route.shift());
+  const tmp = current_route?.shift();
+  if (tmp) {
+    moveToNewHead(tmp);
     return;
   }
   const head = snake[0];
   const tail = snake[snake.length - 1];
   let r1 = bfs(grid, head);
-  if (head != tail) {
+  if (head !== tail) {
     const r2 = bfs(grid, tail);
     if (r1 && r2) {
       r1 = r1.length <= r2.length ? r1 : r2;
@@ -369,7 +375,7 @@ function autoMove() {
  * @param {THING} cell 一个格子的值
  * @return {string} class name
  */
-function getCellClass(cell) {
+function getCellClass(cell: THING): string {
   switch (cell) {
     case THING.Empty:
       return "cell";
